@@ -4,6 +4,16 @@ import scipy.spatial as spa
 import pandas as pd
 
 
+def degree_matrix(num_nodes, mutual_knn_edgelist):
+    matrix = np.zeros((num_nodes, num_nodes))
+    i = 0
+    for node in mutual_knn_edgelist:
+        degree = len(mutual_knn_edgelist[node])
+        matrix[i][i] = degree
+        i += 1
+    return matrix
+
+
 def sortDistances(distances):
     distances.sort(key=lambda x: x[1])
     return distances
@@ -24,9 +34,7 @@ def knn_adj_matrix(num_nodes, mutual_knn_edgelist, **kwargs):
         j = 0
         i += 1
 
-    print(mutual_knn_edgelist)
-    print(matrix)
-    return
+    return matrix
 
 
 def knn_edgelist(knn_graph):
@@ -70,6 +78,18 @@ def k_nearest_neighbor(points, k):
     return [knn_graph, dist_edge_weights]
 
 
+def markov_matrix(knn_adj_mat, deg_mat):
+    return np.dot(np.linalg.inv(deg_mat), knn_adj_mat)
+
+
+def laplacian_matrix(A, D):
+    return D - A
+
+
+def normalized_laplacian_matrix(D, L):
+    return np.dot(np.linalg.inv(D), L)
+
+
 def spectral_clustering(points):
     k = 3
     knn, node_distances = k_nearest_neighbor(points, k)
@@ -77,6 +97,13 @@ def spectral_clustering(points):
     mutual_knn = knn_edgelist(knn)
     # distances=node_distances for weighted edges
     A = knn_adj_matrix(len(points), mutual_knn)
+    D = degree_matrix(len(points), mutual_knn)
+
+    normalized_adj_matrix = markov_matrix(A, D)
+    L = laplacian_matrix(A, D)
+    L_normalized = normalized_laplacian_matrix(A, D)  # asymmetric
+
+    print(L)
     return 0
 
 
