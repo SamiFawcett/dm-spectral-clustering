@@ -1,7 +1,33 @@
+import plotly.express as px
+import plotly.graph_objects as go
+import networkx as nx
 import sys
 import numpy as np
 import scipy.spatial as spa
 import pandas as pd
+import random
+import matplotlib.pyplot as plt
+
+
+def generate_points(num, k):
+    points = []
+    boundary = 7
+    space = 1.8
+    bounds = []
+    for i in range(k):
+        bounds.append([(i+1)*boundary/k - space, ((i+1) * boundary/k)])
+
+    for i in range(num):
+        for j in range(k):
+            b = bounds[j]
+            u = b[1]
+            l = b[0]
+            x = random.uniform(l, u)
+            y = random.uniform(l, u)
+            z = random.uniform(l, u)
+            points.append([x, y, z])
+
+    return points
 
 
 def degree_matrix(num_nodes, mutual_knn_edgelist):
@@ -79,15 +105,31 @@ def k_nearest_neighbor(points, k):
 
 
 def markov_matrix(knn_adj_mat, deg_mat):
-    return np.dot(np.linalg.inv(deg_mat), knn_adj_mat)
+    return np.dot(np.linalg.pinv(deg_mat), knn_adj_mat)
 
 
 def laplacian_matrix(A, D):
     return D - A
 
 
-def normalized_laplacian_matrix(D, L):
-    return np.dot(np.linalg.inv(D), L)
+def asym_norm_laplacian_matrix(D, L):
+    return np.dot(np.linalg.pinv(D), L)
+
+
+def sym_norm_laplacian_matrix(D, L):
+    neg_sqrt_deg = np.linalg.pinv(np.sqrt(D))
+    return np.dot(np.dot(neg_sqrt_deg, L), neg_sqrt_deg)
+
+
+def mknn_plot(points, knn):
+    G = nx.Graph()
+
+    for node in knn:
+        for neighbor in knn[node]:
+            trace 
+
+    nx.draw(G, node_size=11, width=0.7)
+    plt.show()
 
 
 def spectral_clustering(points):
@@ -95,15 +137,21 @@ def spectral_clustering(points):
     knn, node_distances = k_nearest_neighbor(points, k)
     # edge list format of adj graph
     mutual_knn = knn_edgelist(knn)
+
+    print(mutual_knn)
     # distances=node_distances for weighted edges
     A = knn_adj_matrix(len(points), mutual_knn)
+
+    mknn_plot(points, mutual_knn)
+
     D = degree_matrix(len(points), mutual_knn)
 
+    # can use any below matrix as graph for spectral clustering, however will use l_sym
     normalized_adj_matrix = markov_matrix(A, D)
     L = laplacian_matrix(A, D)
-    L_normalized = normalized_laplacian_matrix(A, D)  # asymmetric
+    L_normalized_asym = asym_norm_laplacian_matrix(D, L)
+    L_normalized_sym = sym_norm_laplacian_matrix(D, L)
 
-    print(L)
     return 0
 
 
@@ -119,10 +167,14 @@ if __name__ == "__main__":
     argv = sys.argv
 
     filename = argv[1]
-    # generatePoints(n) if want to generate points rather than input points from file
-
-    data = parse(filename)
-    points = data[0]
-    col_view = data[1]
-    print(points)
-    spectral_clustering(points)
+    if(filename == 'generate'):
+        num = int(argv[2])
+        points = generate_points(num, 5)
+        spectral_clustering(points)
+    else:
+        # generatePoints(n) if want to generate points rather than input points from file
+        data = parse(filename)
+        points = data[0]
+        col_view = data[1]
+        print(points)
+        spectral_clustering(points)
