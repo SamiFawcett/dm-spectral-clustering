@@ -4,13 +4,12 @@ import scipy.spatial as spa
 import pandas as pd
 
 
-def degree_matrix(num_nodes, mutual_knn_edgelist):
+def degree_matrix(num_nodes, similarity_matrix):
     matrix = np.zeros((num_nodes, num_nodes))
-    i = 0
-    for node in mutual_knn_edgelist:
-        degree = len(mutual_knn_edgelist[node])
-        matrix[i][i] = degree
-        i += 1
+
+    for i in range(num_nodes):
+        matrix[i][i] = sum(similarity_matrix[i])
+
     return matrix
 
 
@@ -95,31 +94,27 @@ def sym_norm_laplacian_matrix(D, L):
     return np.dot(np.dot(neg_sqrt_deg, L), neg_sqrt_deg)
 
 
-def normalize_B(U):
-    y = []
-
-    for i in range(len(U)):
-        numer = []
-        denom = 0
-        for j in range(len(U)):
-            print()
-        y_i = numer/np.sqrt(denom)
+def normalize_U(U):
+    Y = []
+    for row in U:
+        denom = sum(row)**2
+        numer = row
+        Y.append(numer/denom)
+    return Y
 
 
 def spectral_clustering(points, k, cut):
     # compute similiarity matrix via knn
     knn, node_distances = k_nearest_neighbor(points, k)
 
-    print(knn)
     # edge list format of adj graph
     mutual_knn = knn_edgelist(knn)
-    print(mutual_knn)
 
     # similarity matrix
     A = knn_adj_matrix(len(points), mutual_knn)
 
     # degree matrix
-    D = degree_matrix(len(points), mutual_knn)
+    D = degree_matrix(len(points), A)
 
     #normalized_adj_matrix = markov_matrix(A, D)
 
@@ -134,19 +129,16 @@ def spectral_clustering(points, k, cut):
 
     # solve for eigenvalues and eigenvectors
     evals, evecs = np.linalg.eigh(B)
+
     # take k smallest eigen values and their correspond eigen vectors
     U = []
     for i in range(len(evecs) - 1, len(evecs) - k - 1, -1):
         U.append(evecs[i])
 
-    for i in range(len(U)):
-        denom = 0
-        for j in range(len(U[i])):
-            denom += U[i][j]**2
-            print(denom)
-
+    U = np.array(U)
     # Y normalize rows of U using 16.23 eq
-
+    U_t = np.transpose(U)
+    Y = normalize_U(U_t)
     # run k-means on Y to get clusterings c1...ck
 
     return
